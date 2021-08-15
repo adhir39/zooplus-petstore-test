@@ -14,20 +14,20 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Component
-public class AddPetValidator implements Validation<PresentableDataContainer> {
+public class UpdatePetValidator implements Validation<PresentableDataContainer> {
 
     @Override
     public Stream<Executable> validate(PresentableDataContainer validatable) {
 
-        assertTrue(validatable.getAddPetResponse().isDefined(), "Add pet response is not available for validation");
+        assertTrue(validatable.getUpdatedPetResponse().isDefined(), "Update pet response is not available for validation");
 
         //validation for non http 2xx response
-        if(Objects.nonNull(validatable.getExpectedNegativeResponse())) {
+        if (Objects.nonNull(validatable.getExpectedNegativeResponse())) {
             return Stream.of(() -> {
-                assertTrue(validatable.getAddPetResponse().get().isLeft(), "adding pet should fail but successfully added");
+                assertTrue(validatable.getUpdatedPetResponse().get().isLeft(), "updating pet should fail but successfully updated");
 
-                val actual = validatable.getAddPetResponse().get().getLeft();
-                assertAll("validation for negative add pet response",
+                val actual = validatable.getUpdatedPetResponse().get().getLeft();
+                assertAll("validation for negative update pet response",
 
                         () -> assertThat(actual.getStatusCode()).isEqualTo(validatable.getExpectedNegativeResponse().getExpectedHttpStatus().value()),
                         () -> {
@@ -38,17 +38,16 @@ public class AddPetValidator implements Validation<PresentableDataContainer> {
         }
 
         //Validation for Http 2XX response
-        return Stream.of( () -> {
+        return Stream.of(() -> {
 
-            assertTrue(validatable.getAddPetResponse().get().isRight(), "Something went wrong during Create pet, " +
+            assertTrue(validatable.getUpdatedPetResponse().get().isRight(), "Something went wrong during update, " +
                     "Http family 2XX expected but received 4XX or 5XX family");
 
-            val actual = validatable.getAddPetResponse().get().get();
-            assertAll("validation for add pet",
+            val actual = validatable.getUpdatedPetResponse().get().get();
+            assertAll("validation for update pet",
 
                     () -> assertThat(actual.getStatusCodeValue()).isEqualTo(HttpStatus.OK.value()),
-                    () -> assertThat(actual.getBody().getId()).isNotNull(),
-                    () -> assertThat(actual.getBody()).isEqualToIgnoringGivenFields(validatable.getPetRepresentation(), "id"));
+                    () -> assertThat(actual.getBody()).isEqualTo(validatable.getPetRepresentation()));
         });
     }
 }

@@ -9,24 +9,26 @@ import io.vavr.control.Either;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import static io.vavr.API.Try;
+import static io.vavr.API.For;
+import static io.vavr.API.Option;
 
 @Component
 @RequiredArgsConstructor
-public class AddPetUseCase implements UseCase<PresentableDataContainer, Either<Problem, PresentableDataContainer>> {
+public class UploadImageByIdUseCase implements UseCase<PresentableDataContainer, Either<Problem, PresentableDataContainer>> {
 
     private final PetStoreGateway petStoreGateway;
 
     private final ExceptionToProblemMapper exceptionToProblemMapper;
 
+
     @Override
     public Either<Problem, PresentableDataContainer> execute(PresentableDataContainer presentableDataContainer) {
-        return Try(() -> presentableDataContainer.getPetRepresentation())
-                .map(request -> petStoreGateway.addPet(request)
-                        .toEither()
-                        .mapLeft(exceptionToProblemMapper))
-                .map(presentableDataContainer::putAddPetResponse)
-                .map(container -> container.putPetId(container.getAddPetResponse().get().get().getBody().getId()))
+        return For(presentableDataContainer.getPetId(),
+                Option(presentableDataContainer.getUploadImageRequestRepresentation()))
+                .yield((idOpt, dataOpt) -> petStoreGateway.uploadImageByPetId(idOpt, dataOpt)
+                        .toEither().mapLeft(exceptionToProblemMapper))
+                .map(presentableDataContainer::putUploadImageResponse)
+                .toTry()
                 .toEither()
                 .mapLeft(exceptionToProblemMapper);
     }

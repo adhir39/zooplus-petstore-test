@@ -5,9 +5,11 @@ import lombok.Value;
 
 @Value
 @Builder(toBuilder = true)
-public class UpdatePetRequestRepresentation {
+public class PetStoreGenericResponse {
 
-    String name;
+    int code;
 
-    String status;
+    String type;
+
+    String message;
 }

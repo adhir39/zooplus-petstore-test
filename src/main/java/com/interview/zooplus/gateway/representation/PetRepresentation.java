@@ -5,6 +5,7 @@ import lombok.Value;
 
 import java.util.List;
 
+
 @Builder(toBuilder = true)
 @Value
 public class PetRepresentation {

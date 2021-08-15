@@ -13,7 +13,7 @@ import static io.vavr.API.Try;
 
 @Component
 @RequiredArgsConstructor
-public class AddPetUseCase implements UseCase<PresentableDataContainer, Either<Problem, PresentableDataContainer>> {
+public class UpdatePetUseCase implements UseCase<PresentableDataContainer, Either<Problem, PresentableDataContainer>> {
 
     private final PetStoreGateway petStoreGateway;
 
@@ -22,11 +22,10 @@ public class AddPetUseCase implements UseCase<PresentableDataContainer, Either<P
     @Override
     public Either<Problem, PresentableDataContainer> execute(PresentableDataContainer presentableDataContainer) {
         return Try(() -> presentableDataContainer.getPetRepresentation())
-                .map(request -> petStoreGateway.addPet(request)
+                .map(request -> petStoreGateway.updatePet(request)
                         .toEither()
                         .mapLeft(exceptionToProblemMapper))
-                .map(presentableDataContainer::putAddPetResponse)
-                .map(container -> container.putPetId(container.getAddPetResponse().get().get().getBody().getId()))
+                .map(presentableDataContainer::putUpdatePetResponse)
                 .toEither()
                 .mapLeft(exceptionToProblemMapper);
     }

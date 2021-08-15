@@ -1,16 +1,11 @@
 package com.interview.zooplus.gateway;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.interview.zooplus.config.PetStoreProp;
 import com.interview.zooplus.core.gateway.PetStoreGateway;
 import com.interview.zooplus.gateway.representation.PetRepresentation;
-import com.interview.zooplus.gateway.representation.UpdatePetRequestRepresentation;
+import com.interview.zooplus.gateway.representation.PetStoreGenericResponse;
+import com.interview.zooplus.gateway.representation.UpdatePetFormDataRequestRepresentation;
 import com.interview.zooplus.gateway.representation.UploadImageRequestRepresentation;
-import com.interview.zooplus.gateway.representation.UploadImageResponseRepresentation;
-
-import static io.vavr.API.Try;
-
-import com.interview.zooplus.presentable.PetStatus;
 import com.interview.zooplus.problem.ExceptionToFailureMessage;
 import io.vavr.control.Try;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +21,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
+import static io.vavr.API.Try;
+
 @Slf4j
 @Component
 public class PetStoreGatewayImpl implements PetStoreGateway {
@@ -36,7 +33,7 @@ public class PetStoreGatewayImpl implements PetStoreGateway {
 
     private static final String CREATE_PET_PATH = "/pet";
 
-    private static final String UPLOAD_PET_IMAGE_PATH = CREATE_PET_PATH + "/petId}/uploadImage";
+    private static final String UPLOAD_PET_IMAGE_PATH = CREATE_PET_PATH + "/{petId}/uploadImage";
 
     private static final String FIND_BY_STATUS_PATH = CREATE_PET_PATH + "/findByStatus";
 
@@ -53,8 +50,8 @@ public class PetStoreGatewayImpl implements PetStoreGateway {
     }
 
     @Override
-    public Try<UploadImageResponseRepresentation> uploadImageByPetId(Long petId,
-                                                                     UploadImageRequestRepresentation request) {
+    public Try<ResponseEntity<PetStoreGenericResponse>> uploadImageByPetId(Long petId,
+                                                                           UploadImageRequestRepresentation request) {
         val headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -66,9 +63,9 @@ public class PetStoreGatewayImpl implements PetStoreGateway {
         log.info("Uploading image for pet id : {}", petId);
 
         return Try(() -> entity)
-                .map(requestEntity -> restTemplate.exchange(UPLOAD_PET_IMAGE_PATH, HttpMethod.POST, requestEntity, UploadImageResponseRepresentation.class, petId))
-                .map(ResponseEntity::getBody)
-                .onSuccess(res -> log.info("Successfully uploaded image for pet id :{}", petId))
+                .onSuccess(req -> log.info("Upload file request body : {}", req.getBody()))
+                .map(requestEntity -> restTemplate.exchange(UPLOAD_PET_IMAGE_PATH, HttpMethod.POST, requestEntity, PetStoreGenericResponse.class, petId))
+                .onSuccess(rEntity -> log.info("Successfully uploaded image with response code :{} and body :{}", rEntity.getStatusCodeValue(), rEntity.getBody()))
                 .onFailure(exceptionToFailureMessage);
     }
 
@@ -82,65 +79,62 @@ public class PetStoreGatewayImpl implements PetStoreGateway {
     }
 
     @Override
-    public Try<JsonNode> updatePet(PetRepresentation request) {
+    public Try<ResponseEntity<PetRepresentation>> updatePet(PetRepresentation request) {
         log.info("Update pet request body : {}", request);
-        return Try(() -> restTemplate.exchange(CREATE_PET_PATH, HttpMethod.PUT, new HttpEntity(request), JsonNode.class))
-                .map(ResponseEntity::getBody)
-                .onSuccess(node -> log.info("Successfully added pet with response : {}", node))
+        return Try(() -> restTemplate.exchange(CREATE_PET_PATH, HttpMethod.PUT, new HttpEntity(request), PetRepresentation.class))
+                .onSuccess(entity -> log.info("Successfully updated pet with response : {} and body :{}", entity.getStatusCodeValue(), entity.getBody()))
                 .onFailure(exceptionToFailureMessage);
     }
 
     @Override
-    public Try<List<PetRepresentation>> findPetByStatus(List<PetStatus> status) {
+    public Try<ResponseEntity<List<PetRepresentation>>> findPetByStatus(List<String> status) {
 
         log.info("Requesting pets by group by status : {}", status);
-        val uri = UriComponentsBuilder.fromPath(FIND_BY_STATUS_PATH)
-                .query("status={val}").build(status.toString());
-
-        return Try(() -> restTemplate.exchange(uri.toString(), HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<PetRepresentation>>() {
+        val uri = UriComponentsBuilder.fromPath(FIND_BY_STATUS_PATH);
+        for (String stat : status)
+            uri.queryParam("status", stat);
+        System.out.println(uri.toUriString());
+        return Try(() -> restTemplate.exchange(uri.build().toString(), HttpMethod.GET, HttpEntity.EMPTY, new ParameterizedTypeReference<List<PetRepresentation>>() {
         }))
-                .map(ResponseEntity::getBody)
-                .onSuccess(petList -> log.info("Successfully received pets by status, response : {}", petList))
+                .onSuccess(petList -> log.info("Successfully received pets with response code : {} and body : {}", petList.getStatusCodeValue(), petList.getBody()))
                 .onFailure(exceptionToFailureMessage);
     }
 
     @Override
-    public Try<PetRepresentation> findPetById(Long petId) {
+    public Try<ResponseEntity<PetRepresentation>> findPetById(Long petId) {
         log.info("Requesting Pet for id : {}", petId);
-        return Try(() -> restTemplate.getForObject(BY_ID_PATH, PetRepresentation.class, petId))
-                .onSuccess(res -> log.info("Successfully received pet details for id : {}, response : {}", petId, res))
+        return Try(() -> restTemplate.exchange(BY_ID_PATH, HttpMethod.GET, HttpEntity.EMPTY, PetRepresentation.class, petId))
+                .onSuccess(entity -> log.info("Successfully received pet details with response code :{}, and body :{}", entity.getStatusCodeValue(), entity.getBody()))
                 .onFailure(exceptionToFailureMessage);
     }
 
     @Override
-    public Try<PetRepresentation> updatePetById(Long petId, UpdatePetRequestRepresentation request) {
+    public Try<ResponseEntity<PetStoreGenericResponse>> updatePetFormDataById(Long petId, UpdatePetFormDataRequestRepresentation request) {
         val headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, Object> payLoad = new LinkedMultiValueMap<>();
         payLoad.add("name", request.getName());
         payLoad.add("status", request.getStatus());
 
         val entity = new HttpEntity(payLoad, headers);
-        log.info("Updating pet request body : {} with id : {}", request, petId);
+        log.info("Updating form data request body : {} with id : {}", request, petId);
 
         return Try(() -> entity)
-                .map(requestEntity -> restTemplate.exchange(BY_ID_PATH, HttpMethod.POST, requestEntity, PetRepresentation.class, petId))
-                .map(ResponseEntity::getBody)
-                .onSuccess(res -> log.info("Successfully updated pet with id :{}, response : {}", petId, res))
+                .map(requestEntity -> restTemplate.exchange(BY_ID_PATH, HttpMethod.POST, requestEntity, PetStoreGenericResponse.class, petId))
+                .onSuccess(rEntity -> log.info("Successfully updated form data with response code {} and body : {}", rEntity.getStatusCodeValue(), rEntity.getBody()))
                 .onFailure(exceptionToFailureMessage);
     }
 
     @Override
-    public Try<Void> deletePetById(Long petId) {
+    public Try<ResponseEntity<PetStoreGenericResponse>> deletePetById(Long petId) {
 
         val header = new HttpHeaders();
         header.add("api_key", "special-key");
 
-        log.info("Requesting deelte pet for id : {}",petId);
-        return Try(() -> restTemplate.exchange(BY_ID_PATH, HttpMethod.DELETE, new HttpEntity(header), Void.class, petId))
-                .map(ResponseEntity::getBody)
+        log.info("Requesting delete pet for id : {}", petId);
+        return Try(() -> restTemplate.exchange(BY_ID_PATH, HttpMethod.DELETE, new HttpEntity(header), PetStoreGenericResponse.class, petId))
                 .onFailure(exceptionToFailureMessage)
-                .onSuccess($_ -> log.info("Successfully deleted pet with id : {}", petId));
+                .onSuccess(entity -> log.info("Successfully deleted pet with response code :{} and body : {}", entity.getStatusCodeValue(), entity.getBody()));
     }
 }

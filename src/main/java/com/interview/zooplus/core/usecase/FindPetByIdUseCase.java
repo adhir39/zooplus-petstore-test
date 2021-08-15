@@ -9,11 +9,9 @@ import io.vavr.control.Either;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import static io.vavr.API.Try;
-
 @Component
 @RequiredArgsConstructor
-public class AddPetUseCase implements UseCase<PresentableDataContainer, Either<Problem, PresentableDataContainer>> {
+public class FindPetByIdUseCase implements UseCase<PresentableDataContainer, Either<Problem, PresentableDataContainer>> {
 
     private final PetStoreGateway petStoreGateway;
 
@@ -21,13 +19,10 @@ public class AddPetUseCase implements UseCase<PresentableDataContainer, Either<P
 
     @Override
     public Either<Problem, PresentableDataContainer> execute(PresentableDataContainer presentableDataContainer) {
-        return Try(() -> presentableDataContainer.getPetRepresentation())
-                .map(request -> petStoreGateway.addPet(request)
-                        .toEither()
-                        .mapLeft(exceptionToProblemMapper))
-                .map(presentableDataContainer::putAddPetResponse)
-                .map(container -> container.putPetId(container.getAddPetResponse().get().get().getBody().getId()))
-                .toEither()
-                .mapLeft(exceptionToProblemMapper);
+        return presentableDataContainer.getPetId().toTry()
+                .map(id -> petStoreGateway.findPetById(id)
+                        .toEither().mapLeft(exceptionToProblemMapper))
+                .map(presentableDataContainer::putGetPetResponse)
+                .toEither().mapLeft(exceptionToProblemMapper);
     }
 }

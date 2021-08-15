@@ -5,11 +5,9 @@ import lombok.Value;
 
 @Value
 @Builder(toBuilder = true)
-public class UploadImageResponseRepresentation {
+public class UpdatePetFormDataRequestRepresentation {
 
-    Long code;
+    String name;
 
-    String type;
-
-    String message;
+    String status;
 }
