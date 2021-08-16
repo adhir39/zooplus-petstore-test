@@ -7,6 +7,10 @@ Clone the repo:
 $ git clone git@github.com:adhir39/zooplus-petstore-test.git
 ```
 
+```bash
+$ cd zooplus-petstore-test
+```
+
 Run the project with java 16
 
 ```bash
