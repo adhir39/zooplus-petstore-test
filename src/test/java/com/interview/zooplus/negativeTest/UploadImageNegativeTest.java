@@ -66,4 +66,22 @@ public class UploadImageNegativeTest extends TestBase {
                 .onSuccess(PresentableDataContainer::validateAll)
                 .onFailure(Assertions::fail);
     }
+
+    @Test
+    public void addImage_wheImageTypePdf_thenHttpStatus400() {
+        Try(() -> PresentableDataContainer.builder()
+                .petRepresentation(getPetData(Animal.cat, null).toBuilder()
+                        .photoUrls(null)
+                        .build())
+                .expectedNegativeResponse(ExpectedNegativeResponse.builder()
+                        .expectedHttpStatus(HttpStatus.BAD_REQUEST)
+                        .build())
+                .uploadImageRequestRepresentation(getImageData("cat_fail.pdf", 40000))
+                .build())
+                .map(addPetUseCase).map(Either::get)
+                .map(uploadImageByIdUseCase).map(Either::get)
+                .map(container -> container.addValidator(uploadImageValidator.validate(container)))
+                .onSuccess(PresentableDataContainer::validateAll)
+                .onFailure(Assertions::fail);
+    }
 }
