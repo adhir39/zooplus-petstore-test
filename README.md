@@ -22,7 +22,7 @@ $ ./mvnw allure:serve
 ```
 
 
-To test the Pet store project we came up with come unclear requirement or docuemntation, hence we are assuming some basic criteria to test the API
+To test the Pet store project we encountered some unclear requirement or docuemntation, hence we are assuming some basic criteria to test the API
 
 1. where ever we don't see any documentation about failure , we assume it is http 400
 2. The API doesnt say which fields are mandatory which makes testing some API tricky. For some fields like "name","id" we assumed they are mandatory and cant be null.
